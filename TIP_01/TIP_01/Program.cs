@@ -2,10 +2,58 @@
 using System.Collections.Generic;
 using System.Text;
 
+/*
+    Короче, я на звание лучшего программиста не претендую, по этому оставлю программу в таком виде.
+
+    Командное задание по Теории ЯПов
+    
+    Выполнено:
+    
+    + Не пуст ли язык
+    - Устранение бесполезных символов
+    - Удаление лямбда правил
+    - Устранение недостижимых символов    
+    
+    Работает на листах. Код написан на C#.
+    
+    Ограничения программы: 
+    • Добавление правил не автоматизировано. 
+    • Автоматического тестирования грамматик нет. 
+    • Работает только с терминалами и нетреминалами, состоящими из одного символа
+    
+    Возможности программы:
+    • Добавляет нетерминалы, терминалы, правила и аксиому
+    • Строит полный вывод, используя правила (с любым количеством символов, и с любым количеством правил)
+    • Автоматически останавливается в случае бесконечной рекурсии
+    • Красиво выводит полученный вывод
+*/
+
 namespace TIP_01
 {
+    public class Program
+    {
+        static MainCore mainCore = new MainCore();
+
+        static void Main(string[] args)
+        {
+            // Всего в программе записано 3 набора правил. Раскомментируйте одну из этих 3х строк:
+
+            mainCore.LoadExample_notLanguage();     // (1) - Простой пример из 3х правил, в котором нет языка (терминалы не выводятся)
+            //mainCore.LoadNormalExample();         // (2) - Стандартный пример, с большим набором правил
+            //mainCore.LoadExampleRecurce();        // (3) - Тот-же 2й пример, но последние правило уводит в рекурсию
+
+            // Выше мы загрузили один из 3х наборов правил, и сейчас запускаем лексер, подавая ему на вход аксиому:
+            mainCore.Lexer(mainCore.Axioma);
+
+            // Печатаю, не пуст ли язык:
+            mainCore.printCanBelanguage();
+        }
+    }
+
     public class MainCore
     {
+        #region cout
+
         // Переопределяю метод вывода на консоль, для удобства
         // Теперь вывод работает почти так-же, как и в С++
         public void cout<Type>(Type Input)
@@ -13,10 +61,12 @@ namespace TIP_01
             Console.WriteLine(Input);
         }
 
-        public void coutnn<Type>(Type Input) // Тот-же вывод значений, только без переноса картеки 
+        public void coutnn<Type>(Type Input) // Тот-же вывод значений, только без переноса каретки 
         {
             Console.Write(Input);
         }
+
+        #endregion
 
         // Обявляю NEPS
         public List<string> NoTerminals = new List<string>();
@@ -26,10 +76,14 @@ namespace TIP_01
 
         /*
             Например правило A -> BC, Bc, c;
-            Будет выглядеть: rules[n] = [["A", "Bc", "Bc", "c"]];         
+            Будет выглядеть: rules[n] = [["A", "Bc", "Bc", "c"]], где n - это номер этого правила
 
             Лямбда - будет & 
         */
+
+        bool isVisibleLambdaOnOutput = false; // Если true, то символ & будет выведен в консоли, при выводе
+
+        #region Rules
 
         // В основной программе, при загрузке значений используйте любые из этих 3х методов:
 
@@ -181,6 +235,7 @@ namespace TIP_01
             Rules.Add(list6);
         }
 
+        #endregion
 
         public void printingList(List<string> MyList)
         {
@@ -193,13 +248,12 @@ namespace TIP_01
 
         public void sep() // Выводит разделитель
         {
-            //cout("------------");
             cout(" ");
         }
 
         public int maxLengthRules; // Нужен для правильного обхода значений цепочек, для выполнения правил
 
-        public void AllPrint() //(List<string> NoTerminals, List<string> Terminals, List<AlternRules> Rules, string Axioma)
+        public void AllPrint()
         {
             cout("Все нетерминалы: "); 
             printingList(NoTerminals); sep();
@@ -226,15 +280,28 @@ namespace TIP_01
             cout(Axioma); sep();
         }
 
-        int maxRecurs = 20; // Максимальная глубина рекурсии, прежде чем программа начнёт ругаться)
+        public void printCanBelanguage()
+        {
+            if (isMaxRecurse == false)
+            {
+                cout(" ");
+                if (AllTermWord == true) cout("Язык не пуст");
+                else cout("Язык пуст");
+            }
+        }
+
+        int maxRecurs = 50; // Максимальная глубина рекурсии, прежде чем программа начнёт ругаться)
+        bool isMaxRecurse = false;
+
+        public void Lexer(string Axioma)
+        {
+            cout("----------"); cout("Вывод всех лексем языка:"); cout(" ");
+            Lexer(Axioma, 0);
+        }
 
         public void Lexer(string Axioma, int range) // Разбивает входящую строку на единичные (и не только) символы, которые далее анализирует
         {
-            if (range == 0) // Срабатывает только на первом элементе. Встаил сюда, что бы программа была чуть красивее
-            {
-                cout("----------"); cout("Вывод всех лексем языка:"); cout(" ");
-            }
-            if (range < maxRecurs) // Защита от бесконечной рекурсии
+            if ((range < maxRecurs) && (isMaxRecurse == false)) // Защита от бесконечной рекурсии
             {
                 if (range != 0)
                 {
@@ -258,20 +325,49 @@ namespace TIP_01
             }
             else
             {
-                cout("*** Мы попали в рекурсию более " + maxRecurs + " раз. Скроее всего, это ветка бесконечного цикла ***");
+                if (isMaxRecurse == false)
+                {
+                    //cout("*** Мы попали в рекурсию более " + maxRecurs + " раз. Скроее всего, это ветка бесконечного цикла ***");
+                    onInfinitRecurse();
+                }
             }
         }
+
+        // Автоматическая защита от рекурсий
+        void onInfinitRecurse()
+        {
+            isMaxRecurse = true;
+            Console.Clear();
+            AllPrint();
+
+            cout("------------");
+            cout("Ошибка! Не удалось построить вывод языка.");
+            cout("Скорее всего в грамматике есть рекурсивные правила, из-за которых построить вывод невозможно.");
+            cout(" ");
+            cout("Попробуйте изменить некоторые правила, или увеличить значение переменной maxRecurs");
+            cout("------------");
+        }
+
+        bool AllTermWord = false; // Если существует выводимое слово, состоящее только из терминалов, эта переменная становится true  
 
         bool Anal(int i, int range, string curr, string Axioma) // Анализирует символы, но только по одному. Возвращает false, если символ не является нетерминалом
         {
             bool isNeterminal = false;
+            bool allSimvolTerminal = true;
+
             for (int j = 0; j < NoTerminals.Count; j++) // Смотрим, что бы все символы в рассматриваемом куске были нетреминалами
             {
                 if (NoTerminals[j] == curr) 
                 {
                     isNeterminal = true;
+                    allSimvolTerminal = false;
                     break;
                 }
+            }
+
+            if (allSimvolTerminal == true)
+            {
+                AllTermWord = true;
             }
 
             if (isNeterminal == false) // Если это терминал
@@ -306,8 +402,17 @@ namespace TIP_01
 
                     for (int k = 1; k < Rules[j].Count; k++) // Начинаем со 2го элемента, потому что 1й - это начало нашего правила
                     {
-                        string newAxioma = prevSimv + Rules[j][k] + endSimv;
+                        if (isVisibleLambdaOnOutput == false)
+                        {
+                            if (Rules[j][k] == "&")
+                            {
+                                string newAxioma1 = prevSimv + endSimv;
+                                Lexer(newAxioma1, range + 1); // И отправляем значение обратно в распознавание
+                                return true;
+                            }
+                        }
 
+                        string newAxioma = prevSimv + Rules[j][k] + endSimv;
                         Lexer(newAxioma, range + 1); // И отправляем значение обратно в распознавание
                     }
                 }
@@ -315,7 +420,9 @@ namespace TIP_01
             return true;
         }
 
-        bool AnalMultiplix(int range, string Axioma) // Анализирует символы по группам, начиная с 2х, и до maxLengthRules
+        bool AnalMultiplix(int range, string Axioma) 
+        // Анализирует символы по группам, начиная с 2х, и до maxLengthRules
+        // Этот блок кода нужен для того, что бы работали правила, например BC -> ..., или CCD -> ...
         {
             //cout("Получили аксиому для обработки: " + Axioma);
             for (int mult = 2; mult <= maxLengthRules; mult++)
@@ -353,7 +460,7 @@ namespace TIP_01
             return true;
         }
 
-        void useMultiplyRules(string groupSimv, string Axioma, int jj,  int mult, int range) // Используем правила, которые содержат больше 1 символа в начале
+        bool useMultiplyRules(string groupSimv, string Axioma, int jj,  int mult, int range) // Используем правила, которые содержат больше 1 символа в начале
         {
             //cout("Получили группу символов " + groupSimv + " в аксиоме " + Axioma);
 
@@ -377,33 +484,22 @@ namespace TIP_01
 
                     for (int k = 1; k < Rules[j].Count; k++) // Начинаем со 2го элемента, потому что 1й - это начало нашего правила
                     {
-                        string newAxioma = prevSimv + Rules[j][k] + endSimv;
+                        if (isVisibleLambdaOnOutput == false)
+                        {
+                            if (Rules[j][k] == "&")
+                            {
+                                string newAxioma1 = prevSimv + endSimv;
+                                Lexer(newAxioma1, range + 1); // И отправляем значение обратно в распознавание
+                                return true;
+                            }
+                        }
 
+                        string newAxioma = prevSimv + Rules[j][k] + endSimv;
                         Lexer(newAxioma, range + 1); // И отправляем значение обратно в распознавание
                     }
                 }
             }
-        }
-    }
-
-
-    public class Program
-    {
-        public int a = 0;
-        static MainCore mainCore = new MainCore();
-
-        public static void cout<Type>(Type Input)
-        {
-            Console.WriteLine(Input);
-        }
-
-        static void Main(string[] args)
-        {
-            mainCore.LoadExample_notLanguage();
-            //mainCore.LoadNormalExample();
-            //mainCore.LoadExampleRecurce();
-
-            mainCore.Lexer(mainCore.Axioma, 0);
+            return true;
         }
     }
 }
