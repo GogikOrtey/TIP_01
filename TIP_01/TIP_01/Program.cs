@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Diagnostics;   // Для отслеживания времени работы программы
+using System.Threading;     // Использую многопоточность
 
 /*
     Короче, я на звание лучшего программиста не претендую, по этому оставлю программу в таком виде.
@@ -28,6 +30,10 @@ using System.Text;
     • Красиво выводит полученный вывод
 */
 
+/*
+    Сделать многопоточность только при рекрусии
+*/
+
 namespace TIP_01
 {
     public class Program
@@ -36,17 +42,28 @@ namespace TIP_01
 
         static void Main(string[] args)
         {
-            // Всего в программе записано 3 набора правил. Раскомментируйте одну из этих 3х строк:
+            Stopwatch st = new Stopwatch();
+            st.Start();
 
-            mainCore.LoadExample_notLanguage();     // (1) - Простой пример из 3х правил, в котором нет языка (терминалы не выводятся)
-            //mainCore.LoadNormalExample();         // (2) - Стандартный пример, с большим набором правил
-            //mainCore.LoadExampleRecurce();        // (3) - Тот-же 2й пример, но последние правило уводит в рекурсию
+            // Всего в программе записано 5 наборов правил. Раскомментируйте одну из этих 5и строк:
 
-            // Выше мы загрузили один из 3х наборов правил, и сейчас запускаем лексер, подавая ему на вход аксиому:
+            mainCore.LoadExample_notLanguage();         // (1) - Нерекурсивынй без языка
+            //mainCore.LoadNormalExample();             // (2) - Нерекурсивный с языком
+            //mainCore.LoadExampleRecurce();            // (3) - Рекурсивный с языком 
+            //mainCore.LoadNumberExample();             // (4) - Пример от преподавателя (Рекурсивный с языком)
+            //mainCore.LoadExample_notLanguageRecurce();// (5) - Рекурсивный без языка
+
+            // Выше мы загрузили один из 5и наборов правил, и сейчас запускаем лексер, подавая ему на вход аксиому:
             mainCore.Lexer(mainCore.Axioma);
 
-            // Печатаю, не пуст ли язык:
-            mainCore.printCanBelanguage();
+            if (mainCore.isRecurceOn == false)
+            {
+                mainCore.ToDoprintCanBelanguage(); // Выводит, пуст ли язык
+                //if (mainCore.isOutpResult == false) mainCore.cout("Язык пуст");
+                st.Stop();
+                mainCore.cout("\nВремя выполнения алгоритма: " + Math.Round(st.Elapsed.TotalSeconds, 2) + " сек");
+            }
+            else st.Stop();
         }
     }
 
@@ -71,7 +88,7 @@ namespace TIP_01
         // Обявляю NEPS
         public List<string> NoTerminals = new List<string>();
         public List<string> Terminals = new List<string>();
-        List<List<string>> Rules = new List<List<string>>();
+        public static List<List<string>> Rules = new List<List<string>>();
         public string Axioma;
 
         /*
@@ -100,14 +117,28 @@ namespace TIP_01
             SimpleExample();
             RecurceExample();
 
-            AllPrint(); 
+            AllPrint();
         }
 
         public void LoadExample_notLanguage()
         {
             notLanguageExample();
 
-            AllPrint(); 
+            AllPrint();
+        }        
+
+        public void LoadExample_notLanguageRecurce()
+        {
+            notLanguageRecurceExample();
+
+            AllPrint();
+        }
+
+        public void LoadNumberExample()
+        {
+            numberExample();
+
+            AllPrint();
         }
 
         // Но не используйте эти 4. Я специально сделал их без public
@@ -213,6 +244,86 @@ namespace TIP_01
             Rules.Add(list3);
         }
 
+        void notLanguageRecurceExample()
+        {
+            NoTerminals.Add("A");
+            NoTerminals.Add("B");
+            NoTerminals.Add("C");
+            NoTerminals.Add("D");
+
+            Terminals.Add("a");
+            Terminals.Add("b");
+            Terminals.Add("c");
+            Terminals.Add("d");
+
+            Axioma = "A";
+
+            List<string> list1 = new List<string>();
+
+            list1.Add("A");
+            list1.Add("B");
+            list1.Add("C");
+
+            Rules.Add(list1);
+
+            List<string> list2 = new List<string>();
+
+            list2.Add("C");
+            list2.Add("D");
+
+            Rules.Add(list2);
+
+            List<string> list3 = new List<string>();
+
+            list3.Add("D");
+            list3.Add("A");
+
+            Rules.Add(list3);
+        }
+
+        void numberExample()
+        {
+            NoTerminals.Add("Ч");
+            NoTerminals.Add("Ц");
+
+            Terminals.Add("1");
+            Terminals.Add("2");
+            Terminals.Add("3");
+            Terminals.Add("4");
+            Terminals.Add("5");
+            Terminals.Add("6");
+            Terminals.Add("7");
+            Terminals.Add("8");
+            Terminals.Add("9");
+            Terminals.Add("0");
+
+            Axioma = "Ч";
+
+            List<string> list1 = new List<string>();
+
+            list1.Add("Ч");
+            list1.Add("ЧЦ");
+            list1.Add("Ц");
+
+            Rules.Add(list1);
+
+            List<string> list2 = new List<string>();
+
+            list2.Add("Ц");
+            list2.Add("1");
+            list2.Add("2");
+            list2.Add("3");
+            list2.Add("4");
+            list2.Add("5");
+            list2.Add("6");
+            list2.Add("7");
+            list2.Add("8");
+            list2.Add("9");
+            list2.Add("0");
+
+            Rules.Add(list2);
+        }
+
         void RecurceExample()
         {
             List<string> list6 = new List<string>();
@@ -252,6 +363,16 @@ namespace TIP_01
         }
 
         public int maxLengthRules; // Нужен для правильного обхода значений цепочек, для выполнения правил
+        int[] countUseRules; // Ведёт учёт, сколько раз было использовано каждое правило при построении вывода. Понадобится при рекурсии
+        bool isTrue = false;
+
+        public static long Fact(long n)
+        {
+            if (n == 0)
+                return 1;
+            else
+                return n * Fact(n - 1);
+        }        
 
         public void AllPrint()
         {
@@ -278,13 +399,70 @@ namespace TIP_01
 
             sep(); cout("Аксиома: "); 
             cout(Axioma); sep();
+
+            if (isTrue == false) // Инициализирую массив учёта использования правил (только один раз)
+            {
+                countUseRules = new int[Rules.Count];
+
+                isTrue = true;
+                for (int i = 0; i < Rules.Count; i++)
+                {
+                    countUseRules[i] = 0;
+                }
+
+                countActiveRules = Rules.Count;
+
+                int allCountRules = 0;
+
+                for (int i = 0; i < Rules.Count; i++)
+                {
+                    for (int j = 0; j < Rules[i].Count; j++)
+                    {
+                        allCountRules++; // Считаю сколько вообще у меня правил
+                    }
+                }
+
+                maxCountIteration = Fact(Terminals.Count) * allCountRules;
+            }
         }
 
+        long allCountIteration;
+        long maxCountIteration;
+        public bool isOutpResult = false;
         public void printCanBelanguage()
         {
-            if (isMaxRecurse == false)
+            /*
+            if (AllTermWord == true)
             {
-                cout(" ");
+                if (isOutpResult == false)
+                {
+                    isOutpResult = true;
+                    if (isMaxRecurse == false)
+                    {
+                        cout(" ");
+                        if (AllTermWord == true) cout("Язык не пуст");
+                        else cout("Язык пуст");
+                        isEndProgramm = true;
+                    }
+                }
+            }
+            else if (allCountIteration >= maxCountIteration)
+            {
+                cout("Язык пуст");
+                isEndProgramm = true;
+            }
+            */
+
+            //ToDoprintCanBelanguage();
+        }
+
+        public void ToDoprintCanBelanguage() // Принудительно выводит данные о том, не пуст ли язык
+        {
+            //if (isOutpResult == false)
+            {
+                Console.Clear();
+                AllPrint();
+                //isOutpResult = true;
                 if (AllTermWord == true) cout("Язык не пуст");
                 else cout("Язык пуст");
             }
@@ -295,62 +473,162 @@ namespace TIP_01
 
         public void Lexer(string Axioma)
         {
-            cout("----------"); cout("Вывод всех лексем языка:"); cout(" ");
-            Lexer(Axioma, 0);
+            //cout("----------"); cout("Вывод всех лексем языка:"); cout(" ");
+            Lexer(Axioma, 0, polarity);
         }
 
-        public void Lexer(string Axioma, int range) // Разбивает входящую строку на единичные (и не только) символы, которые далее анализирует
+        bool polarity = true; // Полярность - это режим работы лексера. Он используется для перевывода грамматик, при рекурсии
+        public bool isEndProgramm = false;
+        public void Lexer(string Axioma, int range, bool inpPolarity) // Разбивает входящую строку на единичные (и не только) символы, которые далее анализирует
         {
-            if ((range < maxRecurs) && (isMaxRecurse == false)) // Защита от бесконечной рекурсии
+            if ((AllTermWord == true) && (isRecurceOn == true))
             {
-                if (range != 0)
+                if (isEndProgramm == false)
                 {
-                    for (int i = 0; i < range - 1; i++) { coutnn("|   "); }  // Тут добавляем отступы, что бы знать, на каком шаге рекурсии мы сейчас
-                    coutnn("|→ "); 
+                    // Не делаю лишних вычеслений. Если мы уже были в рекурсии, и нашли слово состоящее из терминалов, вывожу это на консоль и завершаю программу
+                    isEndProgramm = true;
+                    printCanBelanguage();
                 }
-
-                cout(Axioma); // Вот тут печатаем, что бы знать, что обрабатывает программа
-
-                for (int i = 0; i < Axioma.Length; i++)
+            }
+            else if (isEndProgramm != true)
+            {
+                if (inpPolarity == polarity) // Лексер работает только если полярности вызова функции и внешняя полярность совпадают
                 {
-                    string curr = Axioma[i].ToString();
-
-                    if (Anal(i, range, curr, Axioma) == false)
+                    if ((range < maxRecurs) && (isMaxRecurse == false)) // Защита от бесконечной рекурсии
                     {
-                        continue; // Сразу начинаем рассматривать следующий символ
+                        allCountIteration++;
+                        if (false) //(isRecurceOn == false)
+                        {
+                            if (range != 0)
+                            {
+                                for (int i = 0; i < range - 1; i++) { coutnn("|   "); }  // Тут добавляем отступы, что бы знать, на каком шаге рекурсии мы сейчас
+                                coutnn("|→ ");
+                            }
+
+                            cout(Axioma); // Вот тут печатаем, что бы знать, что обрабатывает программа
+                        }
+
+                        for (int i = 0; i < Axioma.Length; i++)
+                        {
+                            string curr = Axioma[i].ToString();
+
+                            if (Anal(i, range, curr, Axioma, inpPolarity) == false)
+                            {
+                                continue; // Сразу начинаем рассматривать следующий символ
+                            }
+                        }
+
+                        AnalMultiplix(range, Axioma, inpPolarity);
+                    }
+                    else
+                    {
+                        if (isMaxRecurse == false)
+                        {
+                            //cout("*** Мы попали в рекурсию более " + maxRecurs + " раз. Скроее всего, это ветка бесконечного цикла ***");
+                            onInfinitRecurse();
+                        }
                     }
                 }
-
-                AnalMultiplix(range, Axioma); 
             }
-            else
+            else if(isEndProgramm == true)
             {
-                if (isMaxRecurse == false)
-                {
-                    //cout("*** Мы попали в рекурсию более " + maxRecurs + " раз. Скроее всего, это ветка бесконечного цикла ***");
-                    onInfinitRecurse();
-                }
+                printCanBelanguage();
             }
         }
+
+        //bool whyLexerUses = true; // Показывает, какую процедуру лексера использовать, при перезагрузке вывода // true = 1, false = 2
+        bool isOnceRecurce = false;
+        int countActiveRules; // Если активных правил останется 0, то мы прекращаем попытки вывода
+        public bool isRecurceOn = false; // Эта переменная становится = true, если мы хотя бы один раз попали в рекурсию, и поменяли полярность
 
         // Автоматическая защита от рекурсий
         void onInfinitRecurse()
         {
             isMaxRecurse = true;
-            Console.Clear();
-            AllPrint();
 
+
+            /*
+            if (isOnceRecurce == false)
+            {
+                isOnceRecurce = true;
+                Console.Clear();
+                AllPrint();
+
+                cout("------------");
+                cout("Похоже программа попала в бесконечную рекурсию");
+                cout("Это значит, что отобразить полный вывод языка не получится. \n");
+                cout("Подождите, пока она выполняет перевывод грамматики");
+                cout("------------");
+                cout(" ");
+
+                ToDoprintCanBelanguage();
+            }
+            */
+
+            new Thread(() => Lexer(Axioma, 0, polarity)).Start();
+
+            //ToDoprintCanBelanguage();
+
+            //cout("*** Остановка вывода языка №" + (Rules.Count - countActiveRules) + " ***");
+
+            /*
+            if (countActiveRules > 0)
+            {
+                countActiveRules--;
+                isRecurceOn = true; 
+
+                int maxCountRul = 0;
+                int indexMaxCountRul = 0;
+
+                //cout(" ");
+                for (int i = 0; i < Rules.Count; i++) // Ищу правило с максимальным колл-вом использований
+                {
+                    if (countUseRules[i] > maxCountRul) indexMaxCountRul = i;
+
+                    //cout(countUseRules[i] + ", ");
+                }
+
+                countUseRules[indexMaxCountRul] = -1; // "удаляю" его. Теперь программа не будет использовать его при выводе
+
+                polarity = !polarity; // Изменяем полярность. Теперь все старые рекурсивные процедур не будут работать
+                isMaxRecurse = false;
+
+                //Thread t = new Thread(Lexer(Axioma, 0, polarity)); // Запускаем вывод заново
+                //t.Start();
+
+                new Thread(() => Lexer(Axioma, 0, polarity)).Start();
+                //Lexer(Axioma, 0, polarity);
+
+
+                // Запускаем вывод заново
+                // Используем "полярность", для верного вызова процедур лексера 
+            }
+            */
+
+            /*
+            else // Завершаем программу
+            {
+                cout(" ");
+                cout("------------");
+                printCanBelanguage();
+                cout("------------");
+                cout(" ");
+            }
+            */
+
+            /*
             cout("------------");
             cout("Ошибка! Не удалось построить вывод языка.");
             cout("Скорее всего в грамматике есть рекурсивные правила, из-за которых построить вывод невозможно.");
             cout(" ");
             cout("Попробуйте изменить некоторые правила, или увеличить значение переменной maxRecurs");
             cout("------------");
+            */
         }
 
         bool AllTermWord = false; // Если существует выводимое слово, состоящее только из терминалов, эта переменная становится true  
 
-        bool Anal(int i, int range, string curr, string Axioma) // Анализирует символы, но только по одному. Возвращает false, если символ не является нетерминалом
+        bool Anal(int i, int range, string curr, string Axioma, bool inpPolarity) // Анализирует символы, но только по одному. Возвращает false, если символ не является нетерминалом
         {
             bool isNeterminal = false;
             bool allSimvolTerminal = true;
@@ -368,6 +646,8 @@ namespace TIP_01
             if (allSimvolTerminal == true)
             {
                 AllTermWord = true;
+                isEndProgramm = true;
+                //printCanBelanguage();
             }
 
             if (isNeterminal == false) // Если это терминал
@@ -402,25 +682,36 @@ namespace TIP_01
 
                     for (int k = 1; k < Rules[j].Count; k++) // Начинаем со 2го элемента, потому что 1й - это начало нашего правила
                     {
-                        if (isVisibleLambdaOnOutput == false)
+                        // Если это правило не "удалено", то мы прибавляем ему счётчик исползований
+                        if(countUseRules[j]!=-1)
                         {
-                            if (Rules[j][k] == "&")
-                            {
-                                string newAxioma1 = prevSimv + endSimv;
-                                Lexer(newAxioma1, range + 1); // И отправляем значение обратно в распознавание
-                                return true;
-                            }
-                        }
+                            countUseRules[j] += 1;
 
-                        string newAxioma = prevSimv + Rules[j][k] + endSimv;
-                        Lexer(newAxioma, range + 1); // И отправляем значение обратно в распознавание
+                            if (isVisibleLambdaOnOutput == false)
+                            {
+                                if (Rules[j][k] == "&")
+                                {
+                                    string newAxioma1 = prevSimv + endSimv;
+
+                                    //if(isRecurceOn)
+                                    new Thread(() => Lexer(newAxioma1, range + 1, inpPolarity)).Start();
+                                    //else Lexer(newAxioma1, range + 1, inpPolarity); // И отправляем значение обратно в распознавание
+                                    return true;
+                                }
+                            }
+
+                            string newAxioma = prevSimv + Rules[j][k] + endSimv;
+                            //if(isRecurceOn) 
+                                new Thread(() => Lexer(newAxioma, range + 1, inpPolarity)).Start();
+                            //else Lexer(newAxioma, range + 1, inpPolarity); // И отправляем значение обратно в распознавание
+                        }
                     }
                 }
             }
             return true;
         }
 
-        bool AnalMultiplix(int range, string Axioma) 
+        bool AnalMultiplix(int range, string Axioma, bool inpPolarity) 
         // Анализирует символы по группам, начиная с 2х, и до maxLengthRules
         // Этот блок кода нужен для того, что бы работали правила, например BC -> ..., или CCD -> ...
         {
@@ -453,14 +744,14 @@ namespace TIP_01
                         // Используем процедуру, для поиска и применения правил, там внутри встраиваем правила в аксиому
                         // И далее отправляем дальше в лексер
 
-                        useMultiplyRules(groupSimv, Axioma, j, mult, range);
+                        useMultiplyRules(groupSimv, Axioma, j, mult, range, inpPolarity);
                     }
                 }
             }
             return true;
         }
 
-        bool useMultiplyRules(string groupSimv, string Axioma, int jj,  int mult, int range) // Используем правила, которые содержат больше 1 символа в начале
+        bool useMultiplyRules(string groupSimv, string Axioma, int jj,  int mult, int range, bool inpPolarity) // Используем правила, которые содержат больше 1 символа в начале
         {
             //cout("Получили группу символов " + groupSimv + " в аксиоме " + Axioma);
 
@@ -484,18 +775,27 @@ namespace TIP_01
 
                     for (int k = 1; k < Rules[j].Count; k++) // Начинаем со 2го элемента, потому что 1й - это начало нашего правила
                     {
-                        if (isVisibleLambdaOnOutput == false)
+                        // Если это правило не "удалено", то мы прибавляем ему счётчик исползований
+                        if (countUseRules[j] != -1)
                         {
-                            if (Rules[j][k] == "&")
+                            countUseRules[j] += 1;
+                            if (isVisibleLambdaOnOutput == false)
                             {
-                                string newAxioma1 = prevSimv + endSimv;
-                                Lexer(newAxioma1, range + 1); // И отправляем значение обратно в распознавание
-                                return true;
+                                if (Rules[j][k] == "&")
+                                {
+                                    string newAxioma1 = prevSimv + endSimv;
+                                    //if(isRecurceOn) 
+                                        new Thread(() => Lexer(newAxioma1, range + 1, inpPolarity)).Start();
+                                    //else Lexer(newAxioma1, range + 1, inpPolarity); // И отправляем значение обратно в распознавание
+                                    return true;
+                                }
                             }
-                        }
 
-                        string newAxioma = prevSimv + Rules[j][k] + endSimv;
-                        Lexer(newAxioma, range + 1); // И отправляем значение обратно в распознавание
+                            string newAxioma = prevSimv + Rules[j][k] + endSimv;
+                            //if(isRecurceOn) 
+                                new Thread(() => Lexer(newAxioma, range + 1, inpPolarity)).Start();
+                            //else Lexer(newAxioma, range + 1, inpPolarity); // И отправляем значение обратно в распознавание
+                        }
                     }
                 }
             }
